@@ -11,11 +11,47 @@ namespace IfcGeoRefChecker.Appl
 
         public IList<double> RotationZ { get; set; }
 
+        public IList<double> RotationXY { get; set; }
+
         public bool GeoRefPlcm { get; set; }
 
         //private IIfcAxis2Placement3D plcm3D;
         //private IIfcAxis2Placement2D plcm2D;
 
+        //LoGeoRef20
+        public PlacementXYZ(IIfcSite site)
+        {
+
+            if (site.RefLatitude.HasValue && site.RefLongitude.HasValue)
+            {
+                this.LocationXYZ = new List<double>
+                {
+                    site.RefLatitude.Value.AsDouble,
+                    site.RefLongitude.Value.AsDouble,
+                };
+                
+                if (System.Math.Abs(site.RefLatitude.Value.AsDouble) <= 90 && System.Math.Abs(site.RefLongitude.Value.AsDouble) <= 180)
+                {
+                    this.GeoRefPlcm = true;
+                }
+                else
+                {
+                    this.GeoRefPlcm = false;
+                }
+                
+            }
+            else
+            {
+                this.GeoRefPlcm = false;
+            }
+
+            if (site.RefElevation.HasValue)
+            {
+                this.LocationXYZ.Add(site.RefElevation.Value);// IfcLengthMeasure: Usually measured in millimeters (mm).
+            }
+        }
+
+        //LoGeoRef30 & LoGeoRef40
         public PlacementXYZ(IIfcAxis2Placement plcm)
         {
             if(plcm is IIfcAxis2Placement3D)
@@ -61,7 +97,7 @@ namespace IfcGeoRefChecker.Appl
                     this.RotationZ.Add(1);
                 }
 
-                if((plcm3D.Location.X > 0) || (plcm3D.Location.Y > 0) || (plcm3D.Location.Z > 0))
+                if((plcm3D.Location.X > 0) && (plcm3D.Location.Y > 0) && (plcm3D.Location.Z >= 0))
                 {
                     //by definition: ONLY in this case there could be an georeferencing
                     this.GeoRefPlcm = true;
@@ -96,7 +132,7 @@ namespace IfcGeoRefChecker.Appl
                     this.RotationX.Add(0);
                 }
 
-                if((plcm2D.Location.X > 0) || (plcm2D.Location.Y > 0))
+                if((plcm2D.Location.X > 0) && (plcm2D.Location.Y > 0))
                 {
                     //by definition: ONLY in this case there could be an georeferencing
                     this.GeoRefPlcm = true;
@@ -107,5 +143,46 @@ namespace IfcGeoRefChecker.Appl
                 }
             }
         }
+
+        // LoGeoRef50 - ifc4
+        public PlacementXYZ(IIfcMapConversion mapc)
+        {
+            this.LocationXYZ = new List<double> //must be given, if IfcMapConversion exists
+            {
+            mapc.Eastings,
+            mapc.Northings,
+            mapc.OrthogonalHeight,
+            };
+
+            this.RotationXY = new List<double>();
+
+            if (mapc.XAxisAbscissa != null && mapc.XAxisOrdinate != null)
+
+            {
+                this.RotationXY.Add(mapc.XAxisAbscissa.Value);
+                this.RotationXY.Add(mapc.XAxisOrdinate.Value);
+            }
+            else  //if omitted, values for no rotation (angle = 0) applied (consider difference to True North)
+            {
+                this.RotationXY.Add(0);
+                this.RotationXY.Add(1);
+            }
+
+            if (((mapc.Eastings > 0) && (mapc.Northings > 0) && ((mapc.OrthogonalHeight >= 0) | mapc.OrthogonalHeight == null))
+                &&
+                (System.Math.Round(System.Math.Pow(mapc.XAxisAbscissa.Value, 2) + System.Math.Pow(mapc.XAxisOrdinate.Value, 2),10) == 1))
+            {
+                //by definition: ONLY in this case there could be an georeferencing
+                this.GeoRefPlcm = true;
+
+            }
+            else
+            {
+                this.GeoRefPlcm = false;
+            }
+         
+            
+        }
+        
     }
 }

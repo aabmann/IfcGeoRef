@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -206,17 +207,44 @@ namespace IfcGeoRefChecker.Appl
 
                 if(address != null)
                 {
-                    l10.GeoRef10 = true;
-
+  
                     l10.Instance_Object = GetInfo(address);
 
                     var alines = address.AddressLines;
 
-                    if(alines != null)
+                    // check if at least one value is present
+                    // "WHERE WR1 : EXISTS (InternalLocation) OR EXISTS (AddressLines) OR EXISTS (PostalBox) OR EXISTS (PostalCode) OR EXISTS (Town) OR EXISTS (Region) OR EXISTS (Country);"
+                    if (alines.Count > 0 || address.Country.HasValue || address.PostalCode.HasValue || address.Town.HasValue || address.Region.HasValue)
+                    {
+                        // check that the attributes do not contain only spaces
+                        if ((address.PostalCode.ToString().All(c => c.Equals(' ')) == false) || (address.Town.ToString().All(c => c.Equals(' ')) == false) 
+                            || (address.Region.ToString().All(c => c.Equals(' ')) == false) || (address.Country.ToString().All(c => c.Equals(' ')) == false))
+                        {
+                            l10.GeoRef10 = true;
+                        }
+
+                        foreach (var a in alines)
+                        {
+                            if (a != null && (a.ToString().All(c => c.Equals(' ')) == false))
+                            {
+                                l10.GeoRef10 = true;
+                            }
+                        }
+                    }
+
+                    if(alines.Count > 0)
                     {
                         foreach(var a in alines)
                         {
-                            l10.AddressLines.Add(a);
+                            if (a != null && (a.ToString().All(c => c.Equals(' ')) == false))
+                            {
+                                l10.AddressLines.Add(a);
+                            }
+                            else
+                            {
+                                l10.AddressLines.Add("n/a ");
+
+                            }
                         }
                     }
                     else
@@ -224,10 +252,10 @@ namespace IfcGeoRefChecker.Appl
                         l10.AddressLines.Add("n/a");
                     }
 
-                    l10.Postalcode = (address.PostalCode.HasValue) ? address.PostalCode.ToString() : "n/a";
-                    l10.Town = (address.Town.HasValue) ? address.Town.ToString() : "n/a";
-                    l10.Region = (address.Region.HasValue) ? address.Region.ToString() : "n/a";
-                    l10.Country = (address.Country.HasValue) ? address.Country.ToString() : "n/a";
+                    l10.Postalcode = (address.PostalCode.HasValue && (address.PostalCode.ToString().All(c => c.Equals(' ')) == false)) ? address.PostalCode.ToString() : "n/a";
+                    l10.Town = (address.Town.HasValue && (address.Town.ToString().All(c => c.Equals(' ')) == false)) ? address.Town.ToString() : "n/a";
+                    l10.Region = (address.Region.HasValue && (address.Region.ToString().All(c => c.Equals(' ')) == false)) ? address.Region.ToString() : "n/a";
+                    l10.Country = (address.Country.HasValue && (address.Country.ToString().All(c => c.Equals(' ')) == false)) ? address.Country.ToString() : "n/a";
                 }
                 else
                 {
@@ -255,27 +283,46 @@ namespace IfcGeoRefChecker.Appl
 
                 l20.Reference_Object = GetInfo(site);
 
-                if(site.RefLatitude.HasValue || site.RefLongitude.HasValue)
+                //if(site.RefLatitude.HasValue || site.RefLongitude.HasValue)
+                //{
+                //    l20.Latitude = site.RefLatitude.Value.AsDouble;
+                //    l20.Longitude = site.RefLongitude.Value.AsDouble;
+                //
+                //    l20.GeoRef20 = true;
+                //}
+                //else
+                //{
+                //    l20.Latitude = null;
+                //    l20.Longitude = null;
+                //
+                //    l20.GeoRef20 = false;
+                //}
+                //
+                //l20.Elevation = site.RefElevation.Value;
+
+                var plcmsite = new PlacementXYZ(site);
+
+                l20.GeoRef20 = plcmsite.GeoRefPlcm;
+                
+                if (l20.GeoRef20)
                 {
-                    l20.Latitude = site.RefLatitude.Value.AsDouble;
-                    l20.Longitude = site.RefLongitude.Value.AsDouble;
-
-                    l20.GeoRef20 = true;
+                    l20.Latitude = plcmsite.LocationXYZ[0];
+                    l20.Longitude = plcmsite.LocationXYZ[1];
+                    if (site.RefElevation.HasValue)
+                    {
+                        l20.Elevation = plcmsite.LocationXYZ[2];
+                    }
+                    else
+                    {
+                        l20.Elevation = null;
+                    }
                 }
-                else
-                {
-                    l20.Latitude = null;
-                    l20.Longitude = null;
-
-                    l20.GeoRef20 = false;
-                }
-
-                l20.Elevation = site.RefElevation.Value;
 
                 Log.Information("GeoRefChecker: Reading Level 20 attributes successful.");
             }
             catch(Exception e)
             {
+                MessageBox.Show("GeoRefChecker: Error occured while reading LoGeoRef20 attribute values. Error: " + e.Message);
                 Log.Error("GeoRefChecker: Error occured while reading LoGeoRef20 attribute values. \r\nError message: " + e.Message);
             }
 
@@ -383,21 +430,26 @@ namespace IfcGeoRefChecker.Appl
 
                 var map = obj.MapReader(prjCtx);
 
-                if(map != null)
+                if (map != null)
                 {
+                    var plcmXYZ = new PlacementXYZ(map);
+
                     l50.Instance_Object = GetInfo(map);
 
-                    l50.Translation_Eastings = map.Eastings;
-                    l50.Translation_Northings = map.Northings;
-                    l50.Translation_Orth_Height = map.OrthogonalHeight;
+                    l50.Translation_Eastings = plcmXYZ.LocationXYZ[0];
+                    l50.Translation_Northings = plcmXYZ.LocationXYZ[1];
+                    l50.Translation_Orth_Height = plcmXYZ.LocationXYZ[2];
 
-                    if(map.XAxisAbscissa.HasValue && map.XAxisOrdinate.HasValue)
-                    {
-                        l50.RotationXY = new List<double>();
+                    l50.RotationXY = plcmXYZ.RotationXY;
 
-                        l50.RotationXY.Add(map.XAxisOrdinate.Value);
-                        l50.RotationXY.Add(map.XAxisAbscissa.Value);
-                    }
+                    // Ausgelagert nach PlacementXYZ (IIfcMapConversion mapc)
+                    //if(map.XAxisAbscissa.HasValue && map.XAxisOrdinate.HasValue)
+                    //{
+                    //    l50.RotationXY = new List<double>();
+
+                    //    l50.RotationXY.Add(map.XAxisAbscissa.Value);
+                    //    l50.RotationXY.Add(map.XAxisOrdinate.Value);
+                    //}
                     //else
                     //{
                     //    //if omitted, values for no rotation (angle = 0) applied (consider difference to True North)
@@ -412,15 +464,30 @@ namespace IfcGeoRefChecker.Appl
 
                     if(mapCRS != null)
                     {
-                        l50.CRS_Name = (mapCRS.Name != null) ? mapCRS.Name.ToString() : "n/a";
+                        l50.GeoRef50 = plcmXYZ.GeoRefPlcm;
+
+                        //Die Angabe des CRS ist für LoGeoRef50 auch erforderlich. Angabe muss dabei im EPSG:xxxx Format erfolgen. (Leerzeichen zwischen EPSG: und xxxx werden hier auch geduldet)
+                        if (mapCRS.Name != null && Regex.IsMatch(mapCRS.Name, @"^EPSG:\s*[0-9]+$", RegexOptions.IgnoreCase))
+                        {
+                            l50.CRS_Name = mapCRS.Name.ToString(); 
+                        }
+                        else
+                        {
+                            l50.GeoRef50 = false;
+                        }
+
                         l50.CRS_Description = (mapCRS.Description != null) ? mapCRS.Description.ToString() : "n/a";
                         l50.CRS_Geodetic_Datum = (mapCRS.GeodeticDatum != null) ? mapCRS.GeodeticDatum.ToString() : "n/a";
                         l50.CRS_Vertical_Datum = (mapCRS.VerticalDatum != null) ? mapCRS.VerticalDatum.ToString() : "n/a";
                         l50.CRS_Projection_Name = (mapCRS.MapProjection != null) ? mapCRS.MapProjection.ToString() : "n/a";
                         l50.CRS_Projection_Zone = (mapCRS.MapZone != null) ? mapCRS.MapZone.ToString() : "n/a";
+
+                    }
+                    else
+                    {
+                        l50.GeoRef50 = false;
                     }
 
-                    l50.GeoRef50 = true;
                 }
                 else
                 {
@@ -469,36 +536,68 @@ namespace IfcGeoRefChecker.Appl
 
                 l50.Instance_Object = GetInfo(psetMap);
 
-                var prop = (psetMap.HasProperties.Where(p => p.Name == "Eastings").SingleOrDefault() as IIfcPropertySingleValue);
-                var propVal = prop.NominalValue;
-                var vall = propVal.Value;
+                //var prop = (psetMap.HasProperties.Where(p => p.Name == "Eastings").SingleOrDefault() as IIfcPropertySingleValue);
+                //var propVal = prop.NominalValue;
+                //var vall = propVal.Value;
+                //
+                //var sd = double.TryParse(vall.ToString(), out double asas);
 
-                var sd = double.TryParse(vall.ToString(), out double asas);
-
-                l50.Translation_Eastings = GetPropertyValueNo(psetMap, "Eastings");
-                l50.Translation_Northings = GetPropertyValueNo(psetMap, "Northings");
-                l50.Translation_Orth_Height = GetPropertyValueNo(psetMap, "OrthogonalHeight");
+                //check if XYZ has Values
+                l50.Translation_Eastings = (!double.IsNaN(GetPropertyValueNo(psetMap, "Eastings"))) ? GetPropertyValueNo(psetMap, "Eastings") : double.NaN;
+                l50.Translation_Northings = (!double.IsNaN(GetPropertyValueNo(psetMap, "Northings"))) ? GetPropertyValueNo(psetMap, "Northings") : double.NaN;
+                l50.Translation_Orth_Height = (!double.IsNaN(GetPropertyValueNo(psetMap, "OrthogonalHeight"))) ? GetPropertyValueNo(psetMap, "OrthogonalHeight") : double.NaN;
 
                 l50.RotationXY = new List<double>();
 
-                l50.RotationXY.Add(GetPropertyValueNo(psetMap, "XAxisAbscissa"));
-                l50.RotationXY.Add(GetPropertyValueNo(psetMap, "XAxisOrdinate"));
+                if (!double.IsNaN(GetPropertyValueNo(psetMap, "XAxisAbscissa")) && !double.IsNaN(GetPropertyValueNo(psetMap, "XAxisOrdinate"))) 
+                    //if omitted, values for no rotation (angle = 0) applied (consider difference to True North)
+                {
+                    l50.RotationXY.Add(GetPropertyValueNo(psetMap, "XAxisAbscissa"));
+                    l50.RotationXY.Add(GetPropertyValueNo(psetMap, "XAxisOrdinate"));
+                }
+                else
+                {
+                    l50.RotationXY.Add(0);
+                    l50.RotationXY.Add(1);
+                };
 
-                l50.Scale = GetPropertyValueNo(psetMap, "Scale");
+                //check logic of coordinates and rotation
+                if (((l50.Translation_Eastings > 0) && (l50.Translation_Northings > 0) && ((l50.Translation_Orth_Height >= 0) | double.IsNaN(l50.Translation_Orth_Height))) 
+                    && 
+                    (System.Math.Round(System.Math.Pow(l50.RotationXY[0], 2) + System.Math.Pow(l50.RotationXY[1], 2), 5) == 1))
+                {
+                    //by definition: ONLY in this case there could be an georeferencing
+                    l50.GeoRef50 = true;
+                }
+                else
+                {
+                    l50.GeoRef50 = false;
+                }
 
-                l50.CRS_Name = GetPropertyValueStr(psetCrs, "Name");
-                l50.CRS_Description = GetPropertyValueStr(psetCrs, "Description");
-                l50.CRS_Geodetic_Datum = GetPropertyValueStr(psetCrs, "GeodeticDatum");
-                l50.CRS_Vertical_Datum = GetPropertyValueStr(psetCrs, "VerticalDatum");
-                l50.CRS_Projection_Name = GetPropertyValueStr(psetCrs, "MapProjection");
-                l50.CRS_Projection_Zone = GetPropertyValueStr(psetCrs, "MapZone");
+                l50.Scale = (!double.IsNaN(GetPropertyValueNo(psetMap, "Scale"))) ? GetPropertyValueNo(psetMap, "Scale") : 1;
+
+                if (GetPropertyValueStr(psetCrs, "Name") != null && Regex.IsMatch(GetPropertyValueStr(psetCrs, "Name"), @"^EPSG:\s*[0-9]+$", RegexOptions.IgnoreCase))
+                {
+                    l50.CRS_Name = GetPropertyValueStr(psetCrs, "Name");
+                }
+                else
+                {
+                    l50.CRS_Name = "n/a";
+                    l50.GeoRef50 = false;
+                }
+
+                l50.CRS_Description = (GetPropertyValueStr(psetCrs, "Description") != null) ? GetPropertyValueStr(psetCrs, "Description") : "n/a";
+                l50.CRS_Geodetic_Datum = (GetPropertyValueStr(psetCrs, "GeodeticDatum") != null) ? GetPropertyValueStr(psetCrs, "GeodeticDatum") : "n/a";
+                l50.CRS_Vertical_Datum = (GetPropertyValueStr(psetCrs, "VerticalDatum") != null) ? GetPropertyValueStr(psetCrs, "VerticalDatum") : "n/a";
+                l50.CRS_Projection_Name = (GetPropertyValueStr(psetCrs, "MapProjection") != null) ? GetPropertyValueStr(psetCrs, "MapProjection") : "n/a";
+                l50.CRS_Projection_Zone = (GetPropertyValueStr(psetCrs, "MapZone") != null) ? GetPropertyValueStr(psetCrs, "MapZone") : "n/a";
 
                 Log.Information("GeoRefChecker: Reading Level 50 attributes successful.");
             }
 
             catch(Exception e)
             {
-                MessageBox.Show(e.Message);
+                MessageBox.Show("GeoRefChecker: Error occured while reading LoGeoRef50 attribute values. \r\nError message: " + e.Message);
 
                 Log.Error("GeoRefChecker: Error occured while reading LoGeoRef50 attribute values. \r\nError message: " + e.Message);
             }
@@ -509,20 +608,35 @@ namespace IfcGeoRefChecker.Appl
         private double GetPropertyValueNo(IIfcPropertySet pset, string propName)
         {
             var prop = (pset.HasProperties.Where(p => p.Name == propName).SingleOrDefault() as IIfcPropertySingleValue);
-            var propVal = prop.NominalValue.ToString();
+            if (prop != null)
+            {
+                var propVal = prop.NominalValue.ToString();
 
-            var val = double.TryParse(propVal, System.Globalization.NumberStyles.Any, CultureInfo.InvariantCulture, out double doubleVal);
-            //var val = double.TryParse(propVal, out double doubleVal);
+                var val = double.TryParse(propVal, System.Globalization.NumberStyles.Any, CultureInfo.InvariantCulture, out double doubleVal);
+                //var val = double.TryParse(propVal, out double doubleVal);
 
-            return doubleVal;
+                return doubleVal;
+            }
+            else
+            {
+                return double.NaN;
+            }
         }
 
         private string GetPropertyValueStr(IIfcPropertySet pset, string propName)
         {
             var prop = (pset.HasProperties.Where(p => p.Name == propName).SingleOrDefault() as IIfcPropertySingleValue);
-            var propVal = prop.NominalValue.ToString();
+            if (prop != null)
+            {
+                var propVal = prop.NominalValue.ToString();
 
-            return propVal;
+                return propVal;
+            }
+            else
+            {
+                return null;
+            }
+
         }
 
         /// <summary>

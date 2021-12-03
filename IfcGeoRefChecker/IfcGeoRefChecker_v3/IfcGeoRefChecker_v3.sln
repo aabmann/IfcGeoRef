@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28010.2046
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31112.23
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IfcGeoRefChecker_v3", "IfcGeoRefChecker_v3\IfcGeoRefChecker_v3.csproj", "{64BE62A1-29C5-4D21-9CF7-1F0F80219EC6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IfcGeoRefChecker_GUI", "IfcGeoRefChecker_GUI\IfcGeoRefChecker_GUI.csproj", "{460E9B43-BCA7-431C-8350-1BCCF46288DC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IFCGeoRefCheckerCommand", "IFCGeoRefCheckerCommand\IFCGeoRefCheckerCommand.csproj", "{06285ACD-D639-4BFE-A8E1-CBCF1AF6D9CB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IfcGeometryExtractor", "..\..\..\ifcbuildingcontourcalculator\IfcGeometryExtractor\IfcGeometryExtractor.csproj", "{0A96458F-E9C8-4305-8701-F9242836BA6E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +43,14 @@ Global
 		{06285ACD-D639-4BFE-A8E1-CBCF1AF6D9CB}.Release|Any CPU.Build.0 = Release|Any CPU
 		{06285ACD-D639-4BFE-A8E1-CBCF1AF6D9CB}.Release|x64.ActiveCfg = Release|x64
 		{06285ACD-D639-4BFE-A8E1-CBCF1AF6D9CB}.Release|x64.Build.0 = Release|x64
+		{0A96458F-E9C8-4305-8701-F9242836BA6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A96458F-E9C8-4305-8701-F9242836BA6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A96458F-E9C8-4305-8701-F9242836BA6E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0A96458F-E9C8-4305-8701-F9242836BA6E}.Debug|x64.Build.0 = Debug|Any CPU
+		{0A96458F-E9C8-4305-8701-F9242836BA6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A96458F-E9C8-4305-8701-F9242836BA6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A96458F-E9C8-4305-8701-F9242836BA6E}.Release|x64.ActiveCfg = Release|Any CPU
+		{0A96458F-E9C8-4305-8701-F9242836BA6E}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

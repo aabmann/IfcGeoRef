@@ -120,7 +120,7 @@ namespace IfcGeoRefChecker.IO
                     }
                     catch (System.Exception ex)
                     {
-                        MessageBox.Show("No building elements found. Trying to proceed without. Problem:" + ex);
+                        MessageBox.Show("No building or buildingstorey elements found. Trying to proceed without. Problem:" + ex);
                     }
 
                 }

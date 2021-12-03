@@ -58,15 +58,21 @@ namespace IfcGeoRefChecker_GUI
 
         private void final_export_Click(object sender, RoutedEventArgs e)
         {
-            getJsonContent();
+            var check = getJsonContent();
 
-            var jsonUpd = JsonConvert.SerializeObject(jsonMap, Formatting.Indented);
+            if (check == 1)
+            {
+                var jsonUpd = JsonConvert.SerializeObject(jsonMap, Formatting.Indented);
 
-            var write = new IfcWriter(filePath, fileName, jsonUpd);
+                var write = new IfcWriter(filePath, fileName, jsonUpd);
+            }
+
         }
 
-        private void getJsonContent()       //Auslesen der update-JSON in Anbhängigkeit der gewählten Export-Funktion
+        private double getJsonContent()       //Auslesen der update-JSON in Anbhängigkeit der gewählten Export-Funktion
         {
+            var checkok = 1;
+
             var lev50map = (from l50 in jsonMap.LoGeoRef50          //Lesen des ersten GeoRef50-Eintrages (dieser enthält die neue Georef aus dem BuildingLocator)
                             select l50).First();
 
@@ -175,8 +181,64 @@ namespace IfcGeoRefChecker_GUI
                 else
                 {
                     MessageBox.Show("Error occured. Please provide a number for the absolute height!");
+                    checkok = 0;
                 }
             }
+
+            if (check_10.IsChecked == true)
+            {
+                try
+                {
+                    var lev10Site = (from l10Site in jsonMap.LoGeoRef10
+                                     where l10Site.Reference_Object[1].Equals("IfcSite")
+                                     select l10Site).Single();
+                    var lev10Bldg = (from l10Bldg in jsonMap.LoGeoRef10
+                                     where l10Bldg.Reference_Object[1].Equals("IfcBuilding")
+                                     select l10Bldg).Single();
+
+                    lev10Site.AddressLines.Clear();
+
+                    foreach (var addLine in lev10Bldg.AddressLines)
+                    {
+                        lev10Site.AddressLines.Add(addLine);
+                    }
+
+                    lev10Site.Postalcode = lev10Bldg.Postalcode;
+                    lev10Site.Town = lev10Bldg.Town;
+                    lev10Site.Region = lev10Bldg.Region;
+                    lev10Site.Country = lev10Bldg.Country;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("GeoRefUpdater: An Error occured when trying to use the BuildingAddress also for the SiteAddress. Error: " + ex.Message);
+                    checkok = 0;
+                }
+            }
+            //else if (check_10.IsChecked == false)
+            //{
+            //    try
+            //    {
+            //        var lev10Site = (from l10Site in jsonMap.LoGeoRef10
+            //                         where l10Site.Reference_Object[1].Equals("IfcSite")
+            //                         select l10Site).Single();
+            //
+            //        lev10Site.AddressLines.Clear();
+            //        //lev10Site.AddressLines[0] = null;
+            //        //lev10Site.AddressLines[1] = null;
+            //        //lev10Site.AddressLines[2] = null;
+            //        lev10Site.Postalcode = null;
+            //        lev10Site.Town = null;
+            //        lev10Site.Region = null;
+            //        lev10Site.Country = null;
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        MessageBox.Show("GeoRefUpdater: An Error occured when trying to use the SiteAddress. Error: " + ex.Message);
+            //        checkok = 0;
+            //    }
+            //}
+
+            return checkok;
         }
 
         private double ConvertUnit(double coordinate, string unit)
@@ -205,43 +267,43 @@ namespace IfcGeoRefChecker_GUI
             return coordinate;
         }
 
-        private void check_10_Checked(object sender, RoutedEventArgs e)
-        {
-            var lev10Site = (from l10Site in jsonMap.LoGeoRef10
-                             where l10Site.Reference_Object[1].Equals("IfcSite")
-                             select l10Site).Single();
-            var lev10Bldg = (from l10Bldg in jsonMap.LoGeoRef10
-                             where l10Bldg.Reference_Object[1].Equals("IfcBuilding")
-                             select l10Bldg).Single();
-
-            lev10Site.AddressLines.Clear();
-
-            foreach (var addLine in lev10Bldg.AddressLines)
-            {
-                lev10Site.AddressLines.Add(addLine);
-            }
-
-            lev10Site.Postalcode = lev10Bldg.Postalcode;
-            lev10Site.Town = lev10Bldg.Town;
-            lev10Site.Region = lev10Bldg.Region;
-            lev10Site.Country = lev10Bldg.Country;
-        }
-
-        private void check_10_Unchecked(object sender, RoutedEventArgs e)
-        {
-            var lev10Site = (from l10Site in jsonMap.LoGeoRef10
-                             where l10Site.Reference_Object[1].Equals("IfcSite")
-                             select l10Site).Single();
-
-            lev10Site.AddressLines.Clear();
-            //lev10Site.AddressLines[0] = null;
-            //lev10Site.AddressLines[1] = null;
-            //lev10Site.AddressLines[2] = null;
-            lev10Site.Postalcode = null;
-            lev10Site.Town = null;
-            lev10Site.Region = null;
-            lev10Site.Country = null;
-        }
+        //private void check_10_Checked(object sender, RoutedEventArgs e)
+        //{
+        //    var lev10Site = (from l10Site in jsonMap.LoGeoRef10
+        //                     where l10Site.Reference_Object[1].Equals("IfcSite")
+        //                     select l10Site).Single();
+        //    var lev10Bldg = (from l10Bldg in jsonMap.LoGeoRef10
+        //                     where l10Bldg.Reference_Object[1].Equals("IfcBuilding")
+        //                     select l10Bldg).Single();
+        //
+        //    lev10Site.AddressLines.Clear();
+        //
+        //    foreach (var addLine in lev10Bldg.AddressLines)
+        //    {
+        //        lev10Site.AddressLines.Add(addLine);
+        //    }
+        //
+        //    lev10Site.Postalcode = lev10Bldg.Postalcode;
+        //    lev10Site.Town = lev10Bldg.Town;
+        //    lev10Site.Region = lev10Bldg.Region;
+        //    lev10Site.Country = lev10Bldg.Country;
+        //}
+        //
+        //private void check_10_Unchecked(object sender, RoutedEventArgs e)
+        //{
+        //    var lev10Site = (from l10Site in jsonMap.LoGeoRef10
+        //                     where l10Site.Reference_Object[1].Equals("IfcSite")
+        //                     select l10Site).Single();
+        //
+        //    lev10Site.AddressLines.Clear();
+        //    //lev10Site.AddressLines[0] = null;
+        //    //lev10Site.AddressLines[1] = null;
+        //    //lev10Site.AddressLines[2] = null;
+        //    lev10Site.Postalcode = null;
+        //    lev10Site.Town = null;
+        //    lev10Site.Region = null;
+        //    lev10Site.Country = null;
+        //}
 
         private void edit_manually_Click(object sender, RoutedEventArgs e)
         {

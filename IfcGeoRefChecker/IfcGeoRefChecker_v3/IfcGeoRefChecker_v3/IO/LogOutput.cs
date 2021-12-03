@@ -23,28 +23,35 @@ namespace IfcGeoRefChecker.IO
                     writeLog.WriteLine(headline);
                     writeLog.WriteLine("IfcVersion: " + checkObj.IFCSchema);
                     writeLog.WriteLine("LengthUnit: " + checkObj.LengthUnit);
-                    
+
+                    Log.Information("Start writing Log-file");
+
+
                     foreach (var lev in checkObj.LoGeoRef10)
                     {
                         writeLog.WriteLine(LogLevel10(lev));
                     }
+                    Log.Information("GeoRef Log-file successfully exported LoGeoRef 10.");
 
                     foreach (var lev in checkObj.LoGeoRef20)
                     {
                         writeLog.WriteLine(LogLevel20(lev));
                     }
+                    Log.Information("GeoRef Log-file successfully exported LoGeoRef 20.");
 
-                    foreach(var lev in checkObj.LoGeoRef30)
+                    foreach (var lev in checkObj.LoGeoRef30)
                     {
                         writeLog.WriteLine(LogLevel30(lev));
                     }
+                    Log.Information("GeoRef Log-file successfully exported LoGeoRef 30.");
 
-                    foreach(var lev in checkObj.LoGeoRef40)
+                    foreach (var lev in checkObj.LoGeoRef40)
                     {
                         writeLog.WriteLine(LogLevel40(lev));
                     }
+                    Log.Information("GeoRef Log-file successfully exported LoGeoRef 40.");
 
-                    foreach(var lev in checkObj.LoGeoRef50)
+                    foreach (var lev in checkObj.LoGeoRef50)
                     {
                         writeLog.WriteLine(LogLevel50(lev));
                     }
@@ -70,19 +77,22 @@ namespace IfcGeoRefChecker.IO
 
             logLevel10 += "Existing addresses referenced by IfcSite or IfcBuilding" + dashline + "\r\n";
 
-            if(lev.Instance_Object.Count == 0)
-
+            if (lev.Reference_Object.Count == 0 && lev.Instance_Object.Count == 0)
             {
-                //logLevel10 += "\r\n " + lev.Reference_Object[0] + "=" + lev.Reference_Object[1] + " references no address.";
                 logLevel10 += "\r\n " + " references no address.";
+            }
+            else if(lev.Reference_Object.Count > 0 && lev.Instance_Object.Count == 0)
+            {
+                logLevel10 += "\r\n " + lev.Reference_Object[0] + "=" + lev.Reference_Object[1] + " references no address.";
+                //logLevel10 += "\r\n " + " references no address.";
             }
             else
             {
-                logLevel10 += "Found address referenced by " + lev.Reference_Object[0] + "=" + lev.Reference_Object[1] + ":\r\n" + lev.Instance_Object[0] + "=" + lev.Instance_Object[1] + "\r\n Address: \r\n";
+                logLevel10 += "Found address referenced by " + lev.Reference_Object[0] + "=" + lev.Reference_Object[1] + ":\r\n" + lev.Instance_Object[0] + "=" + lev.Instance_Object[1] + "\r\n Address: ";
 
                 foreach(var a in lev.AddressLines)
                 {
-                    logLevel10 += a;
+                    logLevel10 += "\r\n" + a;
                 }
 
                 logLevel10 += "\r\n Postal code: " + lev.Postalcode + "\r\n Town: " + lev.Town + "\r\n Region: " + lev.Region + "\r\n Country: " + lev.Country;
@@ -102,24 +112,30 @@ namespace IfcGeoRefChecker.IO
 
             logLevel20 += "\r\n \r\nGeographic coordinates referenced by IfcSite (Latitude / Longitude / Elevation)" + dashline + "\r\n";
 
-            if((lev.Longitude == null) || (lev.Latitude == null))
+            if (lev.Reference_Object.Count == 0)
             {
-                logLevel20 += "\r\n " + lev.Reference_Object[0] + "=" + lev.Reference_Object[1] + " has no geographic coordinates.";
+                logLevel20 += "\r\n no IfcSite Present.";
             }
             else
             {
-                logLevel20 += "Referenced in " + lev.Reference_Object[0] + "=" + lev.Reference_Object[1] + ":\r\n Latitude: " + lev.Latitude + "\r\n Longitude: " + lev.Longitude;
-            }
+                if ((lev.Longitude == null) || (lev.Latitude == null))
+                {
+                    logLevel20 += "\r\n " + lev.Reference_Object[0] + "=" + lev.Reference_Object[1] + " has no geographic coordinates.";
+                }
+                else
+                {
+                    logLevel20 += "Referenced in " + lev.Reference_Object[0] + "=" + lev.Reference_Object[1] + ":\r\n Latitude: " + lev.Latitude + "\r\n Longitude: " + lev.Longitude;
+                }
 
-            if(lev.Elevation == null)
-            {
-                logLevel20 += "\r\n " + lev.Reference_Object[0] + "=" + lev.Reference_Object[1] + " has no Elevation.";
+                if (lev.Elevation == null)
+                {
+                    logLevel20 += "\r\n " + lev.Reference_Object[0] + "=" + lev.Reference_Object[1] + " has no Elevation.";
+                }
+                else
+                {
+                    logLevel20 += "\r\n Elevation: " + lev.Elevation;
+                }
             }
-            else
-            {
-                logLevel20 += "\r\n Elevation: " + lev.Elevation;
-            }
-
             logLevel20 += "\r\n \r\n LoGeoRef 20 = " + lev.GeoRef20 + line;
 
             return logLevel20;
@@ -177,6 +193,7 @@ namespace IfcGeoRefChecker.IO
 
         {
             string logLevel50 = "";
+            string ifcversion2x3 = "";
             string line = "\r\n________________________________________________________________________________________________________________________________________";
             string dashline = "\r\n----------------------------------------------------------------------------------------------------------------------------------------";
 
@@ -201,8 +218,14 @@ namespace IfcGeoRefChecker.IO
                     rotY = lev.RotationXY[1];
                 }
 
+                if(lev.Instance_Object[1] == "IfcPropertySet")
+                {
+                    ifcversion2x3 += " - custom build for IFC-Version: IFC2x3";
+                }
+
+
                 logLevel50 += " Project for which IfcMapConversion applies: " + lev.Reference_Object[0] + "=" + lev.Reference_Object[1]
-                + "\r\n MapConversion element: " + lev.Instance_Object[0] + "=" + lev.Instance_Object[1]
+                + "\r\n MapConversion element: " + lev.Instance_Object[0] + "=" + lev.Instance_Object[1] + ifcversion2x3
                 + "\r\n  Translation Eastings:" + lev.Translation_Eastings
                 + "\r\n  Translation Northings:" + lev.Translation_Northings
                 + "\r\n  Translation Height:" + lev.Translation_Orth_Height

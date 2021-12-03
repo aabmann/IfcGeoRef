@@ -1,0 +1,17 @@
+#[FOLDERS WITH IFC INPUT]
+INPUT &...\first_folder\
+INPUT &...\second_folder\
+
+#[PATH TO EXE]
+EXE &...\IFCGeoRefCheckerCommand.exe
+
+#[OUTPUT]
+OUTPUT &...\Output
+
+#[LOG OUTPUT]
+LOGOUTPUT &true
+
+#[JSON OUTPUT]
+JSONOUTPUT &true
+
+
